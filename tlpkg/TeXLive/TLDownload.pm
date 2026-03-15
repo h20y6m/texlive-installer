@@ -75,7 +75,7 @@ sub reinit {
   # for systems that don't have a system-wide certificate bundle
   # in particular MacOS.
   if ((! exists $ENV{'HTTPS_CA_FILE'}) && $certs) {
-    debug("Setting env var HTTPS_CA_FILE to " . $certs ."\n");
+    debug("Setting env var HTTPS_CA_FILE to " . Encode::decode('locale_fs', $certs) ."\n");
     $ENV{'HTTPS_CA_FILE'} = $certs
   }
   #

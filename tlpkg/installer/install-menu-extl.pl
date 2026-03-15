@@ -81,7 +81,9 @@ sub read_vars {
     $l = <STDIN>;
     chomp $l;
     if ($l =~ /^([^:]+): (.*)$/) {
-      $vars{$1} = $2;
+      my $key = $1;
+      utf8::downgrade($key);
+      $vars{$key} = Encode::encode('locale_fs', $2);
     } elsif ($l eq 'endvars') {
       $vars{'free_size'} = TeXLive::TLUtils::diskfree($vars{'TEXDIR'});
       return 1;
@@ -183,6 +185,7 @@ sub run_menu_extl {
     } elsif ($l eq 'checkdir') {
       my $td = <STDIN>;
       chomp $td;
+      $td = Encode::encode('locale_fs', $td);
       if (TeXLive::TLUtils::texdir_check($td)) {
         print "1\n";
       } else {

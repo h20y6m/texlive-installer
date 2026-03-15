@@ -209,7 +209,7 @@ if (wndws()) {
 # global list of lines that get logged (see TLUtils.pm::_logit).
 @::LOGLINES = ();
 # if --version, --help, etc., this just gets thrown away, which is ok.
-&log ("TeX Live installer invocation: $0", map { " $_" } @ARGV, "\n");
+&log ("TeX Live installer invocation: " . Encode::decode('locale_fs', $0), map { " $_" } @ARGV, "\n");
 
 # global list of warnings
 @::WARNLINES = ();
@@ -364,7 +364,7 @@ if (-r "installation.profile"
     && !exists $ENV{"TEXLIVE_INSTALL_NO_RESUME"}) {
   print "mess_yesno\n" if $from_ext_gui; # prepare for dialog interaction
   my $pwd = Cwd::getcwd();
-  print "ABORTED TL INSTALLATION FOUND: installation.profile (in $pwd)\n";
+  print "ABORTED TL INSTALLATION FOUND: installation.profile (in " . Encode::decode('locale_fs', $pwd) . ")\n";
   print "Do you want to continue with the same settings as before (y/N): ";
   print "\nendmess\n" if $from_ext_gui;
   my $answer = <STDIN>;
@@ -778,7 +778,7 @@ if ($opt_gui eq 'text' or $opt_gui eq 'extl' or $opt_profile ne "") {
   }
   do_cleanup(); # sets $::LOGFILENAME if not already defined
   if ($::LOGFILENAME) {
-    print STDOUT "\nLogfile: $::LOGFILENAME\n";
+    print STDOUT "\nLogfile: ".Encode::decode('locale_fs', $::LOGFILENAME)."\n";
   } else {
     # do_cleanup sets $::LOGFILENAME to ""
     #if no logfile could be written
@@ -937,7 +937,7 @@ sub final_remote_init {
   } else {
     info("Distribution: $media\n");
   }
-  info("Directory for temporary files: $::tl_tmpdir\n");
+  info("Directory for temporary files: " . Encode::decode('locale_fs', $::tl_tmpdir) . "\n");
 
   if ($opt_in_place and ($media ne "local_uncompressed")) {
     print "TeX Live not local or not decompressed; 'in_place' option not applicable\n";
@@ -1171,7 +1171,7 @@ sub do_installation {
   my $status = 0;
   if ($errcount > 0) {
     $status = 1;
-    warn "\n$0: errors in installation reported above\n";
+    warn "\n".Encode::decode('locale_fs', $0).": errors in installation reported above\n";
   }
 
   return $status;
@@ -1283,7 +1283,7 @@ operations might be disturbed.\n\n";
   my $usedtlpdb = $opt_in_place ? $tlpdb : $localtlpdb;
 
   if (wndws()) {
-    debug("Actual environment:\n" . `set` ."\n\n");
+    debug("Actual environment:\n" . Encode::decode('locale', `set`) ."\n\n");
     debug("Effective TEXMFCNF: " . `kpsewhich -expand-path=\$TEXMFCNF` ."\n");
   }
 
@@ -2739,7 +2739,7 @@ sub update_numbers {
 sub signal_handler {
   my ($sig) = @_;
   flushlog();
-  print STDERR "$0: caught SIG$sig -- exiting\n";
+  print STDERR Encode::decode('locale_fs', $0) . ": caught SIG$sig -- exiting\n";
   exit(1);
 }
 
@@ -2748,15 +2748,15 @@ sub flushlog {
   if (!defined($::LOGFILENAME)) {
     my $fh;
     my $logfile = "install-tl.log";
-    if (open (LOG, ">$logfile")) {
+    if (open (LOG, ">:utf8", $logfile)) {
       my $pwd = Cwd::getcwd();
       $logfile = "$pwd/$logfile";
-      print "$0: Writing log in current directory: $logfile\n";
+      print Encode::decode('locale_fs', $0) . ": Writing log in current directory: " . Encode::decode('locale_fs', $logfile) . "\n";
       $fh = \*LOG;
     } else {
       $fh = \*STDERR;
       print
-        "$0: Could not write to $logfile, so flushing messages to stderr.\n";
+        Encode::decode('locale_fs', $0) . ": Could not write to $logfile, so flushing messages to stderr.\n";
     }
     foreach my $l (@::LOGLINES) {
       print $fh $l;
@@ -2829,6 +2829,7 @@ sub check_env {
     }
   }
   if ($::env_warns) {
+    $::env_warns = Encode::decode('locale_fs', $::env_warns);
     $::env_warns = <<"EOF";
 
  ----------------------------------------------------------------------

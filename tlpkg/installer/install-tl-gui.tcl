@@ -1950,27 +1950,7 @@ proc run_installer {} {
   # the backend was already running and needs no further encouragement
 
   # switch to non-blocking i/o
-  if {$::tcl_platform(platform) eq "windows"} {
-    package require registry
-    set system_enc [encoding system]
-
-    # When the Tcl manifest specifies 'activeCodePage' as UTF-8, [encoding system]
-    # returns 'utf-8'. However, external processes often still output in the 
-    # system's original ANSI code page (e.g., CP932 for Japanese).
-    # We query the registry to get the 'true' system ANSI code page (ACP) 
-    # to correctly decode piped output from these external tools.
-    set regPath "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Nls\\CodePage"
-    if {![catch {registry get $regPath "ACP"} acp_num]} {
-      if {$acp_num eq "65001"} {
-        set system_enc "utf-8"
-      } elseif {"cp$acp_num" in [encoding names]} {
-        set system_enc "cp$acp_num"
-      }
-    }
-    chan configure $::inst -encoding $system_enc -profile replace -translation auto -buffering line -blocking 0
-  } else {
-    chan configure $::inst -buffering line -blocking 0
-  }
+  chan configure $::inst -buffering line -blocking 0
   chan event $::inst readable read_line_cb
   raise .
   if {$::tcl_platform(platform) eq "windows"} {wm deiconify .}
@@ -2045,6 +2025,30 @@ proc main_prog {} {
 
   # for windows < 10: make sure the main window is still on top
   raise .
+
+  if {$::tcl_platform(platform) eq "windows"} {
+    set system_enc [encoding system]
+    if {$system_enc eq "utf-8"} {
+      # When the tclkit.exe manifest specifies 'activeCodePage' as UTF-8,
+      # [encoding system] returns 'utf-8'. However, external processes often
+      # still output in the system's original ANSI code page (e.g., CP932 for
+      # Japanese). We query the registry to get the 'true' system ANSI code
+      # page (ACP) to correctly decode piped output from these external tools.
+      package require registry
+      set regPath "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Nls\\CodePage"
+      if {![catch {registry get $regPath "ACP"} acp_num]} {
+        if {$acp_num eq "65001"} {
+          # truly utf-8
+          set system_enc "utf-8"
+        } elseif {"cp$acp_num" in [encoding names]} {
+          set system_enc "cp$acp_num"
+        } else {
+          # ACP not supported by Tcl ...what to do?
+        }
+      }
+    }
+    chan configure $::inst -encoding $system_enc -profile replace -translation auto
+  }
 
   chan configure $::inst -buffering line -blocking 1
 

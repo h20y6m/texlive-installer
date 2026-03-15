@@ -174,7 +174,7 @@ sub tlchecksum {
       tldie("TLCRYPTO::tlchecksum: unknown checksum program: $::checksum_method\n");
     }
     if ($ret != 0) {
-      tlwarn("TLCRYPTO::tlchecksum: cannot compute checksum: $file\n");
+      tlwarn("TLCRYPTO::tlchecksum: cannot compute checksum: ".Encode::decode('locale_fs', $file)."\n");
       return "";
     }
     ddebug("tlchecksum: out = $out\n");
@@ -188,7 +188,7 @@ sub tlchecksum {
     } elsif ($::checksum_method eq "digest::sha") {
       $cs = $out;
     }
-    debug("tlchecksum($file): ===$cs===\n");
+    debug("tlchecksum(".Encode::decode('locale_fs', $file)."): ===$cs===\n");
     if (length($cs) != 128) {
       tlwarn("TLCRYPTO::tlchecksum: unexpected output from $::checksum_method:"
              . " $out\n");
@@ -196,7 +196,7 @@ sub tlchecksum {
     }
     return $cs;
   } else {
-    tlwarn("TLCRYPTO::tlchecksum: given file not readable: $file\n");
+    tlwarn("TLCRYPTO::tlchecksum: given file not readable: ".Encode::decode('locale_fs', $file)."\n");
     return "";
   }
 }
@@ -245,39 +245,39 @@ sub verify_checksum_and_check_return {
   my ($r, $m) = verify_checksum($file, "$path.$ChecksumExtension");
   if ($r == $VS_CHECKSUM_ERROR) {
     if (!$localcopymode) {
-      tldie("$0: checksum error when downloading $file from $path: $m\n");
+      tldie(Encode::decode('locale_fs', $0).": checksum error when downloading $file from $path: $m\n");
     }
     return(0, $r);
   } elsif ($r == $VS_SIGNATURE_ERROR) {
-    tldie("$0: signature verification error of $file from $path: $m\n");
+    tldie(Encode::decode('locale_fs', $0).": signature verification error of $file from $path: $m\n");
   } elsif ($r == $VS_CONNECTION_ERROR) {
     if ($localcopymode) {
       return(0, $r);
     } else {
-      tldie("$0: cannot download: $m\n");
+      tldie(Encode::decode('locale_fs', $0).": cannot download: $m\n");
     }
   } elsif ($r == $VS_UNSIGNED) {
     if ($is_main) {
-      tldie("$0: main database at $path is not signed: $m\n");
+      tldie(Encode::decode('locale_fs', $0).": main database at $path is not signed: $m\n");
     }
-    debug("$0: remote database checksum is not signed, continuing anyway\n");
+    debug(Encode::decode('locale_fs', $0).": remote database checksum is not signed, continuing anyway\n");
     return(0, $r);
   } elsif ($r == $VS_EXPKEYSIG) {
-    debug("$0: good signature bug gpg key expired, continuing anyway!\n");
+    debug(Encode::decode('locale_fs', $0).": good signature bug gpg key expired, continuing anyway!\n");
     return(0, $r);
   } elsif ($r == $VS_REVKEYSIG) {
-    debug("$0: good signature but from revoked gpg key, continuing anyway!\n");
+    debug(Encode::decode('locale_fs', $0).": good signature but from revoked gpg key, continuing anyway!\n");
     return(0, $r);
   } elsif ($r == $VS_GPG_UNAVAILABLE) {
-    debug("$0: TLPDB: no gpg available, continuing anyway!\n");
+    debug(Encode::decode('locale_fs', $0).": TLPDB: no gpg available, continuing anyway!\n");
     return(0, $r);
   } elsif ($r == $VS_PUBKEY_MISSING) {
-    debug("$0: TLPDB: pubkey missing, continuing anyway!\n");
+    debug(Encode::decode('locale_fs', $0).": TLPDB: pubkey missing, continuing anyway!\n");
     return(0, $r);
   } elsif ($r == $VS_VERIFIED) {
     return(1, $r);
   } else {
-    tldie("$0: unexpected return value from verify_checksum: $r\n");
+    tldie(Encode::decode('locale_fs', $0).": unexpected return value from verify_checksum: $r\n");
   }
   # we should never come here, but just to be sure
   return(0, $r);
@@ -336,7 +336,7 @@ sub verify_checksum {
   my ($ret, $msg) = verify_signature($checksum_file, $checksum_url);
 
   if ($ret != 0) {
-    debug("verify_checksum: returning $ret and $msg\n");
+    debug("verify_checksum: returning $ret and ".Encode::decode('locale_fs', $msg)."\n");
     return ($ret, $msg)
   }
 
@@ -441,7 +441,7 @@ sub setup_gpg {
   } else {
     $::gpg .= "--no-secmem-warning --no-permission-warning --lock-never ";
   }
-  debug("gpg command line: $::gpg\n");
+  debug("gpg command line: ".Encode::decode('locale_fs', $::gpg)."\n");
   return 1;
 }
 

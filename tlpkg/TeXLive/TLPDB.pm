@@ -334,12 +334,12 @@ sub from_file {
       my $decompressor = $::progs{$DefaultCompressorFormat};
       $compressorextension = $Compressors{$DefaultCompressorFormat}{'extension'};
       my @decompressorArgs = @{$Compressors{$DefaultCompressorFormat}{'decompress_args'}};
-      debug("trying to download $path.$compressorextension to $xzfile\n");
+      debug("trying to download ".Encode::decode('locale_fs', $path).".$compressorextension to ".Encode::decode('locale_fs', $xzfile)."\n");
       my $ret = TeXLive::TLUtils::download_file("$path.$compressorextension", "$xzfile");
       # better to check both, the return value AND the existence of the file
       if ($ret && (-r "$xzfile")) {
         # ok, let the fun begin
-        debug("decompressing $xzfile to $tlpdbfile\n");
+        debug(Encode::decode('locale_fs', "decompressing $xzfile to $tlpdbfile\n"));
         # xz *hopefully* returns 0 on success and anything else on failure
         # we don't have to negate since not zero means error in the shell
         # and thus in perl true
@@ -1985,7 +1985,7 @@ sub _install_data {
     }
     my $ww = ($whatsize || "<unset>");
     my $ss = ($whatcheck || "<unset>");
-    debug("TLPDB::_install_data: what=$what, target=$target, size=$ww, checksum=$ss, tmpdir=$tempdir\n");
+    debug("TLPDB::_install_data: what=$what, target=$target, size=$ww, checksum=$ss, tmpdir=".Encode::decode('locale_fs', $tempdir)."\n");
     my ($ret, $pkg) = TeXLive::TLUtils::unpack($what, $target, 'size' => $whatsize, 'checksum' => $whatcheck, 'tmpdir' => $tempdir);
     if (!$ret) {
       tlwarn("TLPDB::_install_data: $pkg for $what\n"); # $pkg is error msg

@@ -860,7 +860,7 @@ sub system_pipe {
   }
   my $infileQuote = "\"$infile\"";
   my $outfileQuote = "\"$outfile\"";
-  debug("TLUtils::system_pipe: calling $progQuote @extraargs < $infileQuote > $outfileQuote\n");
+  debug(Encode::decode('locale_fs', "TLUtils::system_pipe: calling $progQuote @extraargs < $infileQuote > $outfileQuote\n"));
   my $retval = system("$progQuote @extraargs < $infileQuote > $outfileQuote");
   if ($retval != 0) {
     $retval /= 256 if $retval > 0;
@@ -868,7 +868,7 @@ sub system_pipe {
     return 0;
   } else {
     if ($removeIn) {
-      debug("TLUtils::system_pipe: removing $infile\n");
+      debug("TLUtils::system_pipe: removing ".Encode::decode('locale_fs', $infile)."\n");
       unlink($infile);
     }
     return 1;
@@ -2633,11 +2633,11 @@ for newly-downloaded files; see the calls in the C<unpack> routine
 sub check_file_and_remove {
   my ($xzfile, $checksum, $checksize) = @_;
   my $fn_name = (caller(0))[3];
-  debug("$fn_name $xzfile, $checksum, $checksize\n");
+  debug("$fn_name ".Encode::decode('locale_fs', $xzfile).", $checksum, $checksize\n");
 
   if (!$checksum && !$checksize) {
     tlwarn("$fn_name: neither checksum nor checksize " .
-           "available for $xzfile, cannot check integrity\n"); 
+           "available for ".Encode::decode('locale_fs', $xzfile).", cannot check integrity\n"); 
     return;
   }
   
@@ -2651,20 +2651,20 @@ sub check_file_and_remove {
   if ($checksum && ($checksum ne "-1") && $::checksum_method) {
     my $tlchecksum = TeXLive::TLCrypto::tlchecksum($xzfile);
     if ($tlchecksum ne $checksum) {
-      tlwarn("$fn_name: checksums differ for $xzfile:\n");
+      tlwarn("$fn_name: checksums differ for ".Encode::decode('locale_fs', $xzfile).":\n");
       tlwarn("$fn_name:   tlchecksum=$tlchecksum, arg=$checksum\n");
       tlwarn("$fn_name: backtrace:\n" . backtrace());
       # on Windows passing a pattern creates the tmpdir in PWD
       # which means that it will be tried to be created on the DVD
       # $check_file_tmpdir = File::Temp::tempdir("tlcheckfileXXXXXXXX");
       $check_file_tmpdir = File::Temp::tempdir();
-      tlwarn("$fn_name:   removing $xzfile, "
-             . "but saving copy in $check_file_tmpdir\n");
+      tlwarn("$fn_name:   removing ".Encode::decode('locale_fs', $xzfile).", "
+             . "but saving copy in ".Encode::decode('locale_fs', $check_file_tmpdir)."\n");
       copy($xzfile, $check_file_tmpdir);
       unlink($xzfile);
       return;
     } else {
-      debug("$fn_name: checksums for $xzfile agree\n");
+      debug("$fn_name: checksums for ".Encode::decode('locale_fs', $xzfile)." agree\n");
       # if we have checked the checksum, we don't need to check the size, too
       return;
     }
@@ -2672,13 +2672,13 @@ sub check_file_and_remove {
   if ($checksize && ($checksize ne "-1")) {
     my $filesize = (stat $xzfile)[7];
     if ($filesize != $checksize) {
-      tlwarn("$fn_name: removing $xzfile, sizes differ:\n");
+      tlwarn("$fn_name: removing ".Encode::decode('locale_fs', $xzfile).", sizes differ:\n");
       tlwarn("$fn_name:   tlfilesize=$filesize, arg=$checksize\n");
       if (!defined($check_file_tmpdir)) {
         # the tmpdir should always be undefined, since we shouldn't get
         # here if the checksums failed, but test anyway.
         $check_file_tmpdir = File::Temp::tempdir("tlcheckfileXXXXXXXX");
-        tlwarn("$fn_name:  saving copy in $check_file_tmpdir\n");
+        tlwarn("$fn_name:  saving copy in ".Encode::decode('locale_fs', $check_file_tmpdir)."\n");
         copy($xzfile, $check_file_tmpdir);
       }
       unlink($xzfile);
@@ -2825,15 +2825,15 @@ sub untar {
   # quoting issues.
   # so fall back on chdir in Perl.
   #
-  debug("TLUtils::untar: unpacking $tarfile in $targetdir\n");
+  debug(Encode::decode('locale_fs', "TLUtils::untar: unpacking $tarfile in $targetdir\n"));
   my $cwd = cwd();
-  chdir($targetdir) || die "chdir($targetdir) failed: $!";
+  chdir($targetdir) || die "chdir(".Encode::decode('locale_fs', $targetdir)." failed: $!";
 
   # on w32 don't extract file modified time, because AV soft can open
   # files in the mean time causing time stamp modification to fail
   my $taropt = wndws() ? "xmf" : "xf";
   if (system($tar, $taropt, $tarfile) != 0) {
-    tlwarn("TLUtils::untar: $tar $taropt $tarfile failed (in $targetdir)\n");
+    tlwarn(Encode::decode('locale_fs', "TLUtils::untar: $tar $taropt $tarfile failed (in $targetdir)\n"));
     $ret = 0;
   } else {
     $ret = 1;
@@ -3091,22 +3091,22 @@ sub setup_system_one {
 
 sub setup_windows_tl_one {
   my ($p, $def, $arg) = @_;
-  debug("(w32) trying to set up $p, default $def, arg $arg\n");
+  debug("(w32) trying to set up $p, default ".Encode::decode('locale_fs', $def).", arg $arg\n");
 
   if (-r $def) {
     my $prog = conv_to_w32_path($def);
     my $ret = system("$prog $arg >nul 2>&1"); # on windows
     if ($ret == 0) {
-      debug("Using shipped $def for $p (tested).\n");
+      debug("Using shipped ".Encode::decode('locale_fs', $def)." for $p (tested).\n");
       $::progs{$p} = $prog;
       return(1);
     } else {
-      tlwarn("Setting up $p with $def as $prog didn't work\n");
+      tlwarn("Setting up $p with ".Encode::decode('locale_fs', $def)." as $prog didn't work\n");
       system("$prog $arg");
       return(0);
     }
   } else {
-    debug("Default program $def not readable?\n");
+    debug("Default program ".Encode::decode('locale_fs', $def)." not readable?\n");
     return(0);
   }
 }
@@ -3312,7 +3312,7 @@ sub _download_file_lwp {
     # which, if it succeeds, automatically set enabled to 1
   }
   # we are still here, so try to download
-  debug("persistent connection set up, trying to get $url (for $dest)\n");
+  debug("persistent connection set up, trying to get $url (for ".Encode::decode('locale_fs', $dest).")\n");
   my $ret = $::tldownload_server->get_file($url, $dest);
   if ($ret) {
     ddebug("downloading file via persistent connection succeeded\n");
@@ -3333,7 +3333,7 @@ sub _download_file_program {
     $dest =~ s!/!\\!g;
   }
   
-  debug("TLUtils::_download_file_program: $type $url $dest\n");
+  debug("TLUtils::_download_file_program: $type $url ".Encode::decode('locale_fs', $dest)."\n");
   my $downloader;
   my $downloaderargs;
   my @downloaderargs;

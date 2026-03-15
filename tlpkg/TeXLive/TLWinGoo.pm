@@ -1338,15 +1338,15 @@ sub maybe_make_ro {
   # FsType: test for NTFS, or, better, check whether ACLs are supported
   # FsType needs to be called for the current directory
   my $curdir = Cwd::getcwd();
-  debug "Current directory $curdir\n";
+  debug "Current directory ".Encode::decode('locale_fs', $curdir)."\n";
   chdir $dir;
   my $newdir = Cwd::getcwd();
-  debug "New current directory $newdir\n";
-  tldie "Cannot cd to $dir, current dir is $newdir\n" unless
+  debug "New current directory ".Encode::decode('locale_fs', $newdir)."\n";
+  tldie "Cannot cd to ".Encode::decode('locale_fs', $dir).", current dir is ".Encode::decode('locale_fs', $newdir)."\n" unless
     lc($newdir) eq lc($dir);
   my ($fstype, $flags, $maxl) = Win32::FsType(); # of current drive
   if (!($flags & 0x00000008)) {
-    log "$dir does not supports ACLs; not making read-only\n";
+    log Encode::decode('locale_fs', $dir)." does not supports ACLs; not making read-only\n";
     # go back to original directory
     chdir $curdir;
     return 1;
