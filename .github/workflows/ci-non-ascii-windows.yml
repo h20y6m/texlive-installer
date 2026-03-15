@@ -1,0 +1,18 @@
+name: CI non-ASCII paths on Windows
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Set up PATH on Windows
+      shell: bash
+      run: echo "C:\texlive\bin\windows" >> $GITHUB_PATH
+
+    - name: Installation test on Windows
+      shell: pwsh
+      run: .github/workflows/ci-non-ascii-windows.ps1
