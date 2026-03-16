@@ -1368,7 +1368,9 @@ sub maybe_make_ro {
   my $cmd = 'cmd /c "icacls . /reset && icacls . /inheritance:r'.
     ' /grant:r *S-1-5-32-544:(OI)(CI)F'.
     ' /grant:r *S-1-5-11:(OI)(CI)RX /grant:r *S-1-5-32-545:(OI)(CI)RX"';
-  log "Making read-only\n".Encode::decode(console_out,`$cmd`)."\n";
+  my $cmd_out = `$cmd`;
+  Encode::from_to($cmd_out, 'console_out', 'locale_fs');
+  log "Making read-only\n$cmd_out\n";
 
   # go back to original directory
   chdir $curdir;

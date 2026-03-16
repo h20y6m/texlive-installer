@@ -149,6 +149,7 @@ use POSIX ();
 
 use TeXLive::TLUtils qw(platform platform_desc sort_archs
    which getenv wndws unix info log debug tlwarn ddebug tldie
+   auto_decode_print auto_decode_printf
    member process_logging_options rmtree wsystem
    mkdirhier make_var_skeleton make_local_skeleton install_package copy
    install_packages dirname setup_programs native_slashify forward_slashify);
@@ -364,7 +365,7 @@ if (-r "installation.profile"
     && !exists $ENV{"TEXLIVE_INSTALL_NO_RESUME"}) {
   print "mess_yesno\n" if $from_ext_gui; # prepare for dialog interaction
   my $pwd = Cwd::getcwd();
-  print "ABORTED TL INSTALLATION FOUND: installation.profile (in $pwd)\n";
+  auto_decode_print(\*STDOUT, "ABORTED TL INSTALLATION FOUND: installation.profile (in $pwd)\n");
   print "Do you want to continue with the same settings as before (y/N): ";
   print "\nendmess\n" if $from_ext_gui;
   my $answer = <STDIN>;
@@ -770,23 +771,24 @@ my $status = 1;
 if ($opt_gui eq 'text' or $opt_gui eq 'extl' or $opt_profile ne "") {
   $status = do_installation();
   if (@::WARNLINES) {
-    foreach my $t (@::WARNLINES) { print STDERR $t; }
+    foreach my $t (@::WARNLINES) { auto_decode_print(\*STDERR, $t); }
   }
   if ($::env_warns) { tlwarn($::env_warns); }
   unless ($ENV{"TEXLIVE_INSTALL_NO_WELCOME"}) {
-    info(join("\n", @::welcome_arr));
+    # @::welcome_arr is text string, but info() expect bytes string
+    info(Encode::encode('locale_fs', join("\n", @::welcome_arr)));
   }
   do_cleanup(); # sets $::LOGFILENAME if not already defined
   if ($::LOGFILENAME) {
-    print STDOUT "\nLogfile: $::LOGFILENAME\n";
+    auto_decode_print(\*STDOUT, "\nLogfile: $::LOGFILENAME\n");
   } else {
     # do_cleanup sets $::LOGFILENAME to ""
     #if no logfile could be written
-    print STDERR
-      "Cannot create logfile $vars{'TEXDIR'}/install-tl.log: $!\n";
+    auto_decode_print(\*STDERR,
+      "Cannot create logfile $vars{'TEXDIR'}/install-tl.log: $!\n");
   }
-  printf STDOUT "Installed on platform %s at %s\n",
-      $vars{'this_platform'}, $vars{'TEXDIR'} if ($opt_gui eq 'extl');
+  auto_decode_printf(\*STDOUT, "Installed on platform %s at %s\n",
+      $vars{'this_platform'}, $vars{'TEXDIR'}) if ($opt_gui eq 'extl');
 
   if (@::installation_failed_packages) {
     print <<EOF;
@@ -862,7 +864,7 @@ sub only_load_remote {
       $media = 'NET';
     }
   }
-  if ($from_ext_gui) {print "location: $location\n";}
+  if ($from_ext_gui) {auto_decode_print(\*STDOUT, "location: $location\n");}
   return load_tlpdb();
 } # only_load_remote
 
@@ -1283,7 +1285,9 @@ operations might be disturbed.\n\n";
   my $usedtlpdb = $opt_in_place ? $tlpdb : $localtlpdb;
 
   if (wndws()) {
-    debug("Actual environment:\n" . `set` ."\n\n");
+    my $set_out = `set`;
+    Encode::from_to($set_out, 'console_out', 'locale_fs');
+    debug("Actual environment:\n$set_out\n\n");
     debug("Effective TEXMFCNF: " . `kpsewhich -expand-path=\$TEXMFCNF` ."\n");
   }
 
@@ -2739,7 +2743,7 @@ sub update_numbers {
 sub signal_handler {
   my ($sig) = @_;
   flushlog();
-  print STDERR "$0: caught SIG$sig -- exiting\n";
+  auto_decode_print(\*STDERR, "$0: caught SIG$sig -- exiting\n");
   exit(1);
 }
 
@@ -2751,15 +2755,15 @@ sub flushlog {
     if (open (LOG, ">$logfile")) {
       my $pwd = Cwd::getcwd();
       $logfile = "$pwd/$logfile";
-      print "$0: Writing log in current directory: $logfile\n";
+      auto_decode_print(\*STDOUT, "$0: Writing log in current directory: $logfile\n");
       $fh = \*LOG;
     } else {
       $fh = \*STDERR;
-      print
-        "$0: Could not write to $logfile, so flushing messages to stderr.\n";
+      auto_decode_print(\*STDOUT,
+        "$0: Could not write to $logfile, so flushing messages to stderr.\n");
     }
     foreach my $l (@::LOGLINES) {
-      print $fh $l;
+      auto_decode_print($fh, $l);
     }
   }
 } # flushlog
@@ -2787,10 +2791,10 @@ sub do_cleanup {
   if (!defined($::LOGFILE)) {
     # no -logfile option; nothing written yet
     $::LOGFILENAME = "$vars{'TEXDIR'}/install-tl.log";
-    if (open(LOGF,">:utf8", $::LOGFILENAME)) {
+    if (open(LOGF,">", $::LOGFILENAME)) {
       $::LOGFILE = \*LOGF;
       foreach my $line(@::LOGLINES) {
-        print $::LOGFILE "$line";
+        auto_decode_print($::LOGFILE, "$line");
       }
     } else {
       tlwarn("$0: Cannot create log file $::LOGFILENAME: $!\n"
@@ -2847,11 +2851,14 @@ EOF
 
 
 # Create a welcome message.
+# NOTE: @::welcome_arr is a Unicode text string, unlike the other strings which are raw byte strings.
+# Please exercise extreme caution when concatenating strings or outputting it.
 sub create_welcome {
   @::welcome_arr = ();
+  my $texdir = Encode::decode('locale_fs', $::vars{'TEXDIR'});
   push @::welcome_arr, __("Welcome to TeX Live!");
   push @::welcome_arr, __("See %s/index.html for links to documentation.\n",
-                          $::vars{'TEXDIR'});
+                          $texdir);
   push @::welcome_arr, __("The TeX Live web site (https://tug.org/texlive/) provides all updates\nand corrections. TeX Live is a joint project of the TeX user groups\naround the world; please consider supporting it by joining the group\nbest for you. The list of groups is available on the web\nat https://tug.org/usergroups.html.\n");
   if (wndws()
       || ($vars{'instopt_adjustpath'}
@@ -2861,7 +2868,7 @@ sub create_welcome {
    } else {
     push @::welcome_arr, __(
       "Add %s/texmf-dist/doc/man to MANPATH.\nAdd %s/texmf-dist/doc/info to INFOPATH.\nMost importantly, add %s/bin/%s\nto your PATH for current and future sessions.\n",
-      $::vars{'TEXDIR'}, $::vars{'TEXDIR'}, $::vars{'TEXDIR'},
+      $texdir, $texdir, $texdir,
       $::vars{'this_platform'});
   }
 }

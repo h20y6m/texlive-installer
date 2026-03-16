@@ -279,6 +279,7 @@ BEGIN {
     &SshURIRegex
   );
   @EXPORT = qw(setup_programs download_file process_logging_options
+               auto_decode_print auto_decode_printf
                tldie tlwarn info log debug ddebug dddebug debug
                debug_hash_str debug_hash
                wndws xchdir xsystem run_cmd system_pipe sort_archs);
@@ -3857,6 +3858,56 @@ Logging and debugging messages.
 
 =over 4
 
+=item C<auto_decode_print($fh, @bytes)>
+
+Prints C<@bytes> to the filehandle C<$fh>.
+If the output filehandle has an encoding layer (e.g., UTF-8), it automatically decodes
+C<@bytes> from the OS 'locale_fs' before printing. Otherwise, it prints as a raw byte stream.
+
+=cut
+
+sub auto_decode_print {
+    my ($fh, @bytes) = @_;
+    # Get output layers and check if an encoding layer exists
+    my @layers = PerlIO::get_layers($fh, output => 1);
+    my $has_encoding = grep { /^encoding\(/ || /^utf8$/ } @layers;
+    if ($has_encoding) {
+        # If an encoding layer exists:
+        # Decode from 'locale_fs' while ensuring each element is defined (not undef)
+        return print $fh map { Encode::decode('locale_fs', $_ // '') } @bytes;
+    } else {
+        # If no encoding layer exists:
+        # Print exactly as a raw byte stream
+        return print $fh @bytes;
+    }
+}
+
+=item C<auto_decode_printf($fh, $format, @args)>
+
+Prints formatted output to C<$fh> using C<$format>.
+If the output filehandle has an encoding layer (e.g., UTF-8), it automatically decodes
+C<@bytes> from the OS 'locale_fs' before printing. Otherwise, it prints them as raw bytes.
+
+=cut
+
+sub auto_decode_printf {
+    my ($fh, $format, @args) = @_;
+    # Get output layers and check if an encoding layer exists
+    my @layers = PerlIO::get_layers($fh, output => 1);
+    my $has_encoding = grep { /^encoding\(/ || /^utf8$/ } @layers;
+    if ($has_encoding) {
+        # If an encoding layer exists:
+        # Decode from 'locale_fs' while ensuring each element is defined (not undef)
+        my $decoded_format = Encode::decode('locale_fs', $format);
+        my @decoded_args   = map { Encode::decode('locale_fs', $_ // '') } @args;
+        return printf $fh $decoded_format, @decoded_args;
+    } else {
+        # If no encoding layer exists:
+        # Print exactly as a raw byte stream
+        return printf $fh $format, @args;
+    }
+}
+
 =item C<logit($out,$level,@rest)>
 
 Internal routine to write message to both C<$out> (references to
@@ -3877,13 +3928,13 @@ sub _logit {
   if ($::opt_verbosity >= $level) {
     # if $out is a ref/glob to STDOUT or STDERR, print it there
     if (ref($out) eq "GLOB") {
-      print $out @rest;
+      auto_decode_print($out, @rest);
     } else {
       # we should log it into the logfile, but that might be not initialized
       # so either print it to the filehandle $::LOGFILE, or push it onto
       # the to be printed log lines @::LOGLINES
       if (defined($::LOGFILE)) {
-        print $::LOGFILE @rest;
+        auto_decode_print($::LOGFILE, @rest);
       } else {
         push (@::LOGLINES, join ("", @rest));
       }
