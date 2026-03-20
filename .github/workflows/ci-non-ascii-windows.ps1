@@ -66,4 +66,6 @@ Write-Host "::group::Check User Dir"
 Get-ChildItem $UserDir
 Write-Host "::endgroup::"
 
+Copy-Item "tlpkg\TeXLive\*" "$InstallDir\tlpkg\TeXLive\" -Force
+
 tlmgr.bat --version

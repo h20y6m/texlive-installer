@@ -291,6 +291,12 @@ use File::Temp;
 
 use TeXLive::TLConfig;
 
+BEGIN {
+  if (!eval { require Encode::Locale; 1; }) {
+    Encode::define_alias( 'locale_fs' => 'UTF-8' );
+  }
+}
+
 $::opt_verbosity = 0;  # see process_logging_options
 
 our $SshURIRegex = '^((ssh|scp)://([^@]*)@([^/]*)/|([^@]*)@([^:]*):).*$';
