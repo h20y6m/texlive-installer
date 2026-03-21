@@ -1970,6 +1970,45 @@ proc whataboutclose {} {
   # no action for close button of splash screen
 }
 
+# Checking for non-ASCII paths that might cause issues with the Perl backend.
+proc check_non_ascii_paths {} {
+  if {$::tcl_platform(platform) ne "windows"} { return }
+
+  set flagged_paths {}
+
+  # 1. Check the Installer's location (instroot)
+  if {[info exists ::instroot] && [regexp {[^\x00-\x7F]} $::instroot]} {
+    lappend flagged_paths [__ "Installer Location: %s" $::instroot]
+  }
+
+  # 2. Check critical environment variables
+  foreach var {USERPROFILE TEMP TMP} {
+    if {[info exists ::env($var)] && [regexp {[^\x00-\x7F]} $::env($var)]} {
+      lappend flagged_paths "$var: $::env($var)"
+    }
+  }
+
+  # If non-ASCII characters are found, show a cautionary note.
+  if {[llength $flagged_paths] > 0} {
+    set detailed_list [join $flagged_paths "\n"]
+    set response [tk_messageBox \
+        -icon warning \
+        -type yesno \
+        -title "TeX Live Installer" \
+        -message [__ "Non-ASCII characters were detected in the following paths:
+
+%s
+
+While most installations proceed without issue, these characters can occasionally cause the TeX Live installer backend (Perl) to fail on Windows.
+
+Would you like to proceed with the installation now?" $detailed_list]]
+
+    if {$response eq "no"} {
+      exit 1
+    }
+  }
+}
+
 proc main_prog {} {
 
   wm protocol . WM_DELETE_WINDOW whataboutclose
@@ -2012,6 +2051,8 @@ proc main_prog {} {
     # waits for ::mir_selected
   }
   make_splash
+
+  check_non_ascii_paths
 
   # start install-tl-[tcl] via a pipe.
   set cmd [list "|${::perlbin}" "${::instroot}/install-tl" \
@@ -2061,7 +2102,8 @@ proc main_prog {} {
   while 1 { ; # initial perl output
     set ll [read_line]
     if {[lindex $ll 0] < 0} {
-      break
+      # backend gone
+      err_exit "Perl backend terminated unexpectedly"
     }
     set l [lindex $ll 1]
     # There may be occasion for a dialog
@@ -2091,7 +2133,8 @@ If this takes too long, press Abort or choose another repository." \
   while 1 {
     set ll [read_line]
     if {[lindex $ll 0] < 0} {
-      break
+      # backend gone
+      err_exit "Perl backend terminated unexpectedly"
     }
     set l [lindex $ll 1]
     if {$l eq "menudata"} {
