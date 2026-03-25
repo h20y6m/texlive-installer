@@ -1242,6 +1242,32 @@ msgstr "インストール後にCTANをパッケージのアップデート元�
 msgid "Custom scheme"
 msgstr "カスタムスキーム"
 
+#: tlpkg/installer/install-tl-gui.tcl:1981
+#, tcl-format
+msgid "Installer Location: %s"
+msgstr "インストーラの場所: %s"
+
+#: tlpkg/installer/install-tl-gui.tcl:1998
+#, tcl-format
+msgid ""
+"Non-ASCII characters were detected in the following paths:\n"
+"\n"
+"%s\n"
+"\n"
+"These paths may cause the TeX Live installer to fail.\n"
+"If that happens, please try using paths without non-ASCII characters.\n"
+"\n"
+"Do you want to continue?"
+msgstr ""
+"非ASCII文字（日本語など）が含まれているパスが見つかりました：\n"
+"\n"
+"%s\n"
+"\n"
+"これらのパスはTeX Liveインストーラを失敗させる原因となることがあります。\n"
+"インストールが失敗する場合は、非ASCII文字を含まないパスに変更してみてください。\n"
+"\n"
+"このままインストールを続けますか？"
+
 #: tlpkg/installer/install-tl-gui.tcl:2012
 #, tcl-format
 msgid "%s not a local or remote repository"

@@ -1994,14 +1994,15 @@ proc check_non_ascii_paths {} {
     set response [tk_messageBox \
         -icon warning \
         -type yesno \
-        -title "TeX Live Installer" \
+        -title [__ "TeX Live Installer"] \
         -message [__ "Non-ASCII characters were detected in the following paths:
 
 %s
 
-While most installations proceed without issue, these characters can occasionally cause the TeX Live installer backend (Perl) to fail on Windows.
+These paths may cause the TeX Live installer to fail.
+If that happens, please try using paths without non-ASCII characters.
 
-Would you like to proceed with the installation now?" $detailed_list]]
+Do you want to continue?" $detailed_list]]
 
     if {$response eq "no"} {
       exit 1
